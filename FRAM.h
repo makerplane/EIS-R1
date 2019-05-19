@@ -29,6 +29,9 @@
 class FRAM_SPI {
     public:
         FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI);
+        void writeEnable(bool enable);
+        void write(uint16_t addr, const uint8_t *values, size_t count);
+        void read(uint32_t addr, uint8_t *values, size_t count);
         uint8_t getStatus(void);
     private:
         uint8_t cs_pin, hold_pin, wp_pin, _status;

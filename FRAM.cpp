@@ -63,6 +63,41 @@ FRAM_SPI::FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI
     }
 }
 
+void FRAM_SPI::writeEnable(bool enable) {
+    digitalWrite(cs_pin, LOW);
+    if (enable) {
+        SPI.transfer(OPCODE_WREN);
+    } else {
+        SPI.transfer(OPCODE_WRDI);
+    }
+    digitalWrite(cs_pin, HIGH);
+}
+
+void FRAM_SPI::write(uint16_t addr, const uint8_t *values,
+                              size_t count) {
+    digitalWrite(cs_pin, LOW);
+    SPI.transfer(OPCODE_WRITE);
+    SPI.transfer((uint8_t)(addr >> 8));
+    SPI.transfer((uint8_t)(addr & 0xFF));
+    for (size_t i = 0; i < count; i++) {
+        SPI.transfer(values[i]);
+    }
+    /* CS on the rising edge commits the WRITE */
+    digitalWrite(cs_pin, HIGH);
+}
+
+void FRAM_SPI::read(uint32_t addr, uint8_t *values, size_t count) {
+    digitalWrite(cs_pin, LOW);
+    SPI.transfer(OPCODE_READ);
+    SPI.transfer((uint8_t)(addr >> 8));
+    SPI.transfer((uint8_t)(addr & 0xFF));
+    for (size_t i = 0; i < count; i++) {
+        uint8_t x = SPI.transfer(0);
+        values[i] = x;
+    }
+    digitalWrite(cs_pin, HIGH);
+}
+
 uint8_t FRAM_SPI::getStatus(void) {
     return _status;
 }

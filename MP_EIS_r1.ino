@@ -41,7 +41,7 @@ FRAM_SPI *flash;
 
 uint16_t status = 0x0000;
 CFParameter p;
-int x = 2400;
+int x = 2000;
 long last = 0;
 long update_rate = 1000;
 
@@ -92,6 +92,7 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB
     }
     Serial.println("Starting...");
+    flash->read(0x0000, (uint8_t *)&x, 2);
 #endif    
 }
 
@@ -107,6 +108,9 @@ void loop() {
         p.data[1] = x>>8;
         p.length = 2;
         x++;
+        flash->writeEnable(0x01);
+        flash->write(0x0000, (uint8_t *)&x, 2);
+        flash->writeEnable(0x00);
         if(x > 2600) x = 2400;
         cf->sendParam(p);
         last = now;
