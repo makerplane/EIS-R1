@@ -15,6 +15,9 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#ifndef __FRAM_H
+#define __FRAM_H
+
 #include <SPI.h>
 
  /* Flash Opcodes */
@@ -31,7 +34,7 @@ class FRAM_SPI {
         FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI);
         void writeEnable(bool enable);
         void write(uint16_t addr, const uint8_t *values, size_t count);
-        void read(uint32_t addr, uint8_t *values, size_t count);
+        void read(uint16_t addr, uint8_t *values, size_t count);
         uint8_t getStatus(void);
     private:
         uint8_t cs_pin, hold_pin, wp_pin, _status;
@@ -39,3 +42,5 @@ class FRAM_SPI {
 
         void getDeviceID(uint8_t *manufacturerID, uint16_t *productID);
 };
+
+#endif

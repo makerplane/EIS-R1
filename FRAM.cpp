@@ -20,20 +20,16 @@
 
 
 void FRAM_SPI::getDeviceID(uint8_t *manufacturerID, uint16_t *productID) {
-    uint8_t x[4] = {0, 0, 0, 0};
+    uint8_t x[4];
     
     digitalWrite(cs_pin, LOW);
-    SPI.transfer(OPCODE_RDID);
-    x[0] = SPI.transfer(0);
-    x[1] = SPI.transfer(0);
-    x[2] = SPI.transfer(0);
-    x[3] = SPI.transfer(0);
+    spi->transfer(OPCODE_RDID);
+    x[0] = spi->transfer(0);
+    x[1] = spi->transfer(0);
+    x[2] = spi->transfer(0);
+    x[3] = spi->transfer(0);
     digitalWrite(cs_pin, HIGH);
     
-    /* Shift values to separate manuf and prod IDs */
-    /* See p.10 of
-     * http://www.fujitsu.com/downloads/MICRO/fsa/pdf/products/memory/fram/MB85RS64V-DS501-00015-4v0-E.pdf
-     */
     *manufacturerID = (x[0]);
     *productID = (x[2] << 8) + x[3];
 }
@@ -53,6 +49,9 @@ FRAM_SPI::FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI
     digitalWrite(cs_pin, HIGH);
     digitalWrite(hold_pin, HIGH);
     digitalWrite(wp_pin, HIGH);
+    /*  We read the device id from the chip to make sure that we are
+     *  talking to it.  Set the status to true is not.
+     */
     getDeviceID(&manufacturerID, &productID);
     _status = 0x00;
     if (manufacturerID != 0x04 && manufacturerID != 0x7f) {
@@ -66,33 +65,32 @@ FRAM_SPI::FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI
 void FRAM_SPI::writeEnable(bool enable) {
     digitalWrite(cs_pin, LOW);
     if (enable) {
-        SPI.transfer(OPCODE_WREN);
+        spi->transfer(OPCODE_WREN);
     } else {
-        SPI.transfer(OPCODE_WRDI);
+        spi->transfer(OPCODE_WRDI);
     }
     digitalWrite(cs_pin, HIGH);
 }
 
-void FRAM_SPI::write(uint16_t addr, const uint8_t *values,
-                              size_t count) {
+void FRAM_SPI::write(uint16_t addr, const uint8_t *values, size_t count) {
     digitalWrite(cs_pin, LOW);
-    SPI.transfer(OPCODE_WRITE);
-    SPI.transfer((uint8_t)(addr >> 8));
-    SPI.transfer((uint8_t)(addr & 0xFF));
+    spi->transfer(OPCODE_WRITE);
+    spi->transfer((uint8_t)(addr >> 8));
+    spi->transfer((uint8_t)(addr & 0xFF));
     for (size_t i = 0; i < count; i++) {
-        SPI.transfer(values[i]);
+        spi->transfer(values[i]);
     }
     /* CS on the rising edge commits the WRITE */
     digitalWrite(cs_pin, HIGH);
 }
 
-void FRAM_SPI::read(uint32_t addr, uint8_t *values, size_t count) {
+void FRAM_SPI::read(uint16_t addr, uint8_t *values, size_t count) {
     digitalWrite(cs_pin, LOW);
-    SPI.transfer(OPCODE_READ);
-    SPI.transfer((uint8_t)(addr >> 8));
-    SPI.transfer((uint8_t)(addr & 0xFF));
+    spi->transfer(OPCODE_READ);
+    spi->transfer((uint8_t)(addr >> 8));
+    spi->transfer((uint8_t)(addr & 0xFF));
     for (size_t i = 0; i < count; i++) {
-        uint8_t x = SPI.transfer(0);
+        uint8_t x = spi->transfer(0);
         values[i] = x;
     }
     digitalWrite(cs_pin, HIGH);
