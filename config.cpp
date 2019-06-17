@@ -47,7 +47,7 @@ const PROGMEM uint16_t configMap[] = { (128 << 2) + 1, // Engine Number
                                        (148 << 2) + 2, // Res Input 1 Val 4
                                        (150 << 2) + 2, // Res Input 1 Raw 5
                                        (152 << 2) + 2, // Res Input 1 Val 5
-                                       
+
                                      };
 /*
 void Config::setWriteFunction(void (*func)(uint16_t addr, uint8_t *values, size_t count)) {
@@ -61,6 +61,7 @@ void Config::setReadFunction(void (*func)(uint16_t addr, uint8_t *values, size_t
 
 #define CFG_START_ADDR 128
 
+
 void Config::setFlash(FRAM_SPI *f) {
     flash = f;
 }
@@ -73,26 +74,26 @@ void Config::getAddr(uint16_t key) {
         addr = (key-2) * 2 + CFG_START_ADDR + 2;
         len = 2;
     }
-    
+
 }
 
-void Config::readConfig(uint16_t key, uint8_t *data) {
+void Config::readConfig(uint16_t key, uint8_t *data, uint8_t *length) {
     getAddr(key);
-    //memcpy_P(&mapEntry, &configMap[key], 2);
-    //addr = (mapEntry & 0xFFFC) >> 2;
-    //len = mapEntry & 0x0003;
+    *length = len;
+
     flash->read(addr, data, len);
-    Serial.print("Reading ");
-    Serial.print(key);
-    Serial.print(" Address ");
-    Serial.println(addr);
+    //Serial.print("Reading ");
+    // Serial.print(key);
+    // Serial.print(" Address ");
+    // Serial.print(addr);
+    // Serial.print(" Value ");
+    // Serial.println(*(uint16_t *)data);
+    // Serial.println('  ');
 }
 
 void Config::writeConfig(uint16_t key, uint8_t *data) {
     getAddr(key);
-    //memcpy_P(&mapEntry, &configMap[key], 2);
-    //addr = (mapEntry & 0xFFFC) >> 2;
-    //len = mapEntry & 0x0003;
+
     flash->writeEnable(0x01);
     flash->write(addr, data, len);
     flash->writeEnable(0x00);

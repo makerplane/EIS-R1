@@ -35,14 +35,14 @@ union Config_t {
 class Config {
     public:
         void setFlash(FRAM_SPI *f);
-        void readConfig(uint16_t key, uint8_t *data);
+        void readConfig(uint16_t key, uint8_t *data, uint8_t *length);
         void writeConfig(uint16_t key, uint8_t *data);
     private:
         FRAM_SPI *flash;
         uint8_t len;
         uint16_t addr;
         void getAddr(uint16_t key);
-        
+
 };
 
 #endif

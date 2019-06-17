@@ -33,15 +33,16 @@
 class Analog {
     public:
         byte flags, type;
-        uint16_t input_pin, pid, index, value, rawValue;
+        int input_pin;
+        uint16_t pid, index, value, rawValue;
         uint16_t minimum, maximum, lowWarn, highWarn, lowAlarm, highAlarm;
         void configure(uint16_t keystart, Config cfg, byte type);
         //void setPin(uint8_t pin);
         void read(void);
- 
+
     private:
         uint16_t raw[5], scaled[5];
-        
+
 };
 
 #endif

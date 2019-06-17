@@ -27,33 +27,39 @@
 //}
 
 void Analog::configure(uint16_t keystart, Config cfg, byte t) {
-    byte n;
+    byte n, l;
     unsigned int key = keystart;
     uint16_t result;
     type = t;
-    cfg.readConfig(key++, (uint8_t *)&pid);
-    cfg.readConfig(key++, (uint8_t *)&index);
+    cfg.readConfig(key++, (uint8_t *)&pid, &l);
+    cfg.readConfig(key++, (uint8_t *)&index, &l);
     for(n=0;n<5;n++) {
-        cfg.readConfig(key++, (uint8_t *)&result);
+        cfg.readConfig(key++, (uint8_t *)&result, &l);
         if(type == ANALOG_RESISTANCE) {
-            raw[n] = 1023l*result/(300l+result);
+            raw[n] = 1024l*result/(300l+result);
         } else {
             raw[n] = 1023l*result / 5000l;
         }
-        cfg.readConfig(key++, (uint8_t *)(scaled +n));
-    cfg.readConfig(key++, (uint8_t *)minimum);
-    cfg.readConfig(key++, (uint8_t *)maximum);
-    cfg.readConfig(key++, (uint8_t *)lowWarn);
-    cfg.readConfig(key++, (uint8_t *)lowAlarm);
-    cfg.readConfig(key++, (uint8_t *)highWarn);
-    cfg.readConfig(key++, (uint8_t *)highAlarm);
+        cfg.readConfig(key++, (uint8_t *)(scaled +n), &l);
+    cfg.readConfig(key++, (uint8_t *)minimum, &l);
+    cfg.readConfig(key++, (uint8_t *)maximum, &l);
+    cfg.readConfig(key++, (uint8_t *)lowWarn, &l);
+    cfg.readConfig(key++, (uint8_t *)lowAlarm, &l);
+    cfg.readConfig(key++, (uint8_t *)highWarn, &l);
+    cfg.readConfig(key++, (uint8_t *)highAlarm, &l);
     }
 }
 
 void Analog::read(void) {
     int ai;
     byte n, x = 5;
-    ai = analogRead(A0);
+    ai = analogRead(input_pin);
+    if(type == ANALOG_RESISTANCE) {
+      rawValue = 300ul*ai/(1024ul-ai);
+      //rawValue = ai;
+    } else {
+      rawValue = (5000ul*ai) / 1023;
+    }
     for(n=0;n<4;n++) {
         if(ai >= raw[n] && ai <= raw[n+1]) {
           x = n;
@@ -68,9 +74,4 @@ void Analog::read(void) {
     value = scaled[x] + ((long long)ai - raw[x])*(scaled[x+1] - scaled[x])/(raw[x+1] - raw[x]);
     //value = 0 + ( (ai - 0)*(3000l - 0))/(1023l - 0);
     //value = (10000ul * ai) / 1023;
-    if(type == ANALOG_RESISTANCE) {
-        rawValue = 300ul*ai/(300+ai);
-    } else {
-        rawValue = 1023ul*ai / 5000;
-    } 
 }
