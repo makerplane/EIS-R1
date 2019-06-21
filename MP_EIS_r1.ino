@@ -81,7 +81,7 @@ byte config_callback(word key, byte *data) {
 }
 
 byte query_callback(word key, byte *data, byte *len) {
-    cfg.readConfig(key, data, len);
+    *len = cfg.readConfig(key, data);
     return 0x00;
 }
 
@@ -89,17 +89,17 @@ byte query_callback(word key, byte *data, byte *len) {
 /* This function reads the configuration and writes the data to
    The proper place in all the objects */
 void configure(void) {
-    // analogs[0].configure(2, cfg, ANALOG_RESISTANCE);
-    // analogs[1].configure(20, cfg, ANALOG_RESISTANCE);
-    // analogs[2].configure(38, cfg, ANALOG_RESISTANCE);
-    // analogs[3].configure(56, cfg, ANALOG_RESISTANCE);
-    // analogs[4].configure(74, cfg, ANALOG_RESISTANCE);
+    analogs[0].configure(2, cfg, ANALOG_RESISTANCE);
+    analogs[1].configure(20, cfg, ANALOG_RESISTANCE);
+    analogs[2].configure(38, cfg, ANALOG_RESISTANCE);
+    analogs[3].configure(56, cfg, ANALOG_RESISTANCE);
+    analogs[4].configure(74, cfg, ANALOG_RESISTANCE);
     analogs[5].configure(92, cfg, ANALOG_VOLTAGE);
-    // analogs[6].configure(108, cfg, ANALOG_VOLTAGE);
-    // analogs[7].configure(124, cfg, ANALOG_VOLTAGE);
-    // analogs[8].configure(140, cfg, ANALOG_VOLTAGE);
-    // analogs[9].configure(156, cfg, ANALOG_VOLTAGE);
-    // analogs[10].configure(172, cfg, ANALOG_VOLTAGE);
+    analogs[6].configure(108, cfg, ANALOG_VOLTAGE);
+    analogs[7].configure(124, cfg, ANALOG_VOLTAGE);
+    analogs[8].configure(140, cfg, ANALOG_VOLTAGE);
+    analogs[9].configure(156, cfg, ANALOG_VOLTAGE);
+    analogs[10].configure(172, cfg, ANALOG_VOLTAGE);
 }
 
 void setup() {
@@ -248,11 +248,12 @@ void setup() {
 
 
 void loop() {
-    byte n;
+    //byte n;
     static long update_rate = 500;
     static long next = update_rate;
 
-    long now, val;
+    //long now, val;
+    long now;
     now = millis();
     if(now > next) {
         next += 500;
@@ -271,19 +272,27 @@ void loop() {
 
         analogs[0].read();
         p.type = analogs[0].pid;
-        *(uint16_t *)p.data = analogs[0].value;
+        p.data[0] = analogs[0].value;
+        p.data[1] = analogs[0].value >> 8;
+        //*(uint16_t *)p.data = analogs[0].value;
         p.setFlags( analogs[0].flags );
         cf->sendParam(p);
         Serial.println(analogs[0].rawValue);
 
         analogs[1].read();
         p.type = analogs[1].pid;
-        *(uint16_t *)p.data = analogs[1].value;
+        p.data[0] = analogs[1].value;
+        p.data[1] = analogs[1].value >> 8;
+        //*(uint16_t *)p.data = analogs[1].value;
+        p.setFlags( analogs[1].flags );
         cf->sendParam(p);
 
         analogs[5].read();
         p.type = analogs[5].pid;
-        *(uint16_t *)p.data = analogs[5].value;
+        p.data[0] = analogs[5].value;
+        p.data[1] = analogs[5].value >> 8;
+        //*(uint16_t *)p.data = analogs[5].value;
+        p.setFlags( analogs[5].flags );
         cf->sendParam(p);
         //Serial.println(analogs[5].rawValue);
 

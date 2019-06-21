@@ -18,24 +18,25 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-#include <Arduino.h>
+//#include <Arduino.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <avr/pgmspace.h>
+//#include <avr/pgmspace.h>
 #include "FRAM.h"
 
-union Config_t {
-    uint8_t uShort;
-    uint16_t uInt;
-    int16_t sInt;
-};
+// union Config_t {
+//     uint8_t uShort;
+//     uint16_t uInt;
+//     int16_t sInt;
+// };
 
 
 class Config {
     public:
         void setFlash(FRAM_SPI *f);
-        void readConfig(uint16_t key, uint8_t *data, uint8_t *length);
+        //void readConfig(uint16_t key, uint8_t *data, uint8_t *length);
+        uint8_t readConfig(uint16_t key, uint8_t *data);
         void writeConfig(uint16_t key, uint8_t *data);
     private:
         FRAM_SPI *flash;

@@ -21,7 +21,7 @@
 
 void FRAM_SPI::getDeviceID(uint8_t *manufacturerID, uint16_t *productID) {
     uint8_t x[4];
-    
+
     digitalWrite(cs_pin, LOW);
     spi->transfer(OPCODE_RDID);
     x[0] = spi->transfer(0);
@@ -29,12 +29,12 @@ void FRAM_SPI::getDeviceID(uint8_t *manufacturerID, uint16_t *productID) {
     x[2] = spi->transfer(0);
     x[3] = spi->transfer(0);
     digitalWrite(cs_pin, HIGH);
-    
+
     *manufacturerID = (x[0]);
     *productID = (x[2] << 8) + x[3];
 }
 
-FRAM_SPI::FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI) {
+FRAM_SPI::FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI) {
     uint8_t manufacturerID;
     uint16_t productID;
 
@@ -42,7 +42,7 @@ FRAM_SPI::FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI
     hold_pin = hold;
     wp_pin = wp;
     *spi = *theSPI;
-    
+
     pinMode(cs_pin, OUTPUT);
     pinMode(hold_pin, OUTPUT);
     pinMode(wp_pin, OUTPUT);

@@ -1,4 +1,4 @@
-/*  dCopyright (c) 2019 Phil Birkelbach
+/*  Copyright (c) 2019 Phil Birkelbach
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ const PROGMEM uint16_t configMap[] = { (128 << 2) + 1, // Engine Number
                                        (152 << 2) + 2, // Res Input 1 Val 5
 
                                      };
-/*
+
 void Config::setWriteFunction(void (*func)(uint16_t addr, uint8_t *values, size_t count)) {
     writefunc = func;
 }
@@ -77,18 +77,20 @@ void Config::getAddr(uint16_t key) {
 
 }
 
-void Config::readConfig(uint16_t key, uint8_t *data, uint8_t *length) {
+uint8_t Config::readConfig(uint16_t key, uint8_t *data) {
     getAddr(key);
-    *length = len;
 
     flash->read(addr, data, len);
-    //Serial.print("Reading ");
+
+    // Serial.println('  ');
+    // Serial.print("Reading ");
     // Serial.print(key);
     // Serial.print(" Address ");
     // Serial.print(addr);
     // Serial.print(" Value ");
     // Serial.println(*(uint16_t *)data);
-    // Serial.println('  ');
+    Serial.print('  ');
+    return len;
 }
 
 void Config::writeConfig(uint16_t key, uint8_t *data) {
