@@ -11,3 +11,5 @@ The MakerPlane EIS is an advanced Aircraft engine monitoring system.  It measure
 parameters from the engine and communicates that information over CAN-FIX.
 
 Currently the code is not ready for use but we are working on it.
+
+The MakerPlane CAN-ArduinoLib and CANFIX-ArduinoLib libraries are required.
