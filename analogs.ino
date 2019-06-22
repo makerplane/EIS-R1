@@ -26,28 +26,28 @@
 //    input_pin = pin;
 //}
 
-void Analog::configure(uint16_t keystart, Config cfg, byte t) {
+void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
     byte n;
     unsigned int key = keystart;
     uint16_t result;
     type = t;
-    cfg.readConfig(key++, (uint8_t *)&pid);
-    cfg.readConfig(key++, (uint8_t *)&index);
+    cfg->readConfig(key++, (uint8_t *)&pid);
+    cfg->readConfig(key++, (uint8_t *)&index);
     for(n=0;n<5;n++) {
-        cfg.readConfig(key++, (uint8_t *)&result);
+        cfg->readConfig(key++, (uint8_t *)&result);
         if(type == ANALOG_RESISTANCE) {
             raw[n] = 1024l*result/(300l+result);
         } else {
             raw[n] = 1023l*result / 5000l;
         }
-        cfg.readConfig(key++, (uint8_t *)(scaled +n));
+        cfg->readConfig(key++, (uint8_t *)(scaled +n));
     }
-    cfg.readConfig(key++, (uint8_t *)minimum);
-    cfg.readConfig(key++, (uint8_t *)maximum);
-    cfg.readConfig(key++, (uint8_t *)lowWarn);
-    cfg.readConfig(key++, (uint8_t *)lowAlarm);
-    cfg.readConfig(key++, (uint8_t *)highWarn);
-    cfg.readConfig(key++, (uint8_t *)highAlarm);
+    cfg->readConfig(key++, (uint8_t *)&minimum);
+    cfg->readConfig(key++, (uint8_t *)&maximum);
+    cfg->readConfig(key++, (uint8_t *)&lowWarn);
+    cfg->readConfig(key++, (uint8_t *)&lowAlarm);
+    cfg->readConfig(key++, (uint8_t *)&highWarn);
+    cfg->readConfig(key++, (uint8_t *)&highAlarm);
 }
 
 void Analog::read(void) {

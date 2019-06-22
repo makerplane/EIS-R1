@@ -82,14 +82,6 @@ uint8_t Config::readConfig(uint16_t key, uint8_t *data) {
 
     flash->read(addr, data, len);
 
-    // Serial.println('  ');
-    // Serial.print("Reading ");
-    // Serial.print(key);
-    // Serial.print(" Address ");
-    // Serial.print(addr);
-    // Serial.print(" Value ");
-    // Serial.println(*(uint16_t *)data);
-    Serial.print('  ');
     return len;
 }
 

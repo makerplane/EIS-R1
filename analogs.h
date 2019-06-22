@@ -36,7 +36,7 @@ class Analog {
         int input_pin;
         uint16_t pid, index, value, rawValue;
         uint16_t minimum, maximum, lowWarn, highWarn, lowAlarm, highAlarm;
-        void configure(uint16_t keystart, Config cfg, byte type);
+        void configure(uint16_t keystart, Config *cfg, byte type);
         //void setPin(uint8_t pin);
         void read(void);
 

@@ -89,17 +89,17 @@ byte query_callback(word key, byte *data, byte *len) {
 /* This function reads the configuration and writes the data to
    The proper place in all the objects */
 void configure(void) {
-    analogs[0].configure(2, cfg, ANALOG_RESISTANCE);
-    analogs[1].configure(20, cfg, ANALOG_RESISTANCE);
-    analogs[2].configure(38, cfg, ANALOG_RESISTANCE);
-    analogs[3].configure(56, cfg, ANALOG_RESISTANCE);
-    analogs[4].configure(74, cfg, ANALOG_RESISTANCE);
-    analogs[5].configure(92, cfg, ANALOG_VOLTAGE);
-    analogs[6].configure(108, cfg, ANALOG_VOLTAGE);
-    analogs[7].configure(124, cfg, ANALOG_VOLTAGE);
-    analogs[8].configure(140, cfg, ANALOG_VOLTAGE);
-    analogs[9].configure(156, cfg, ANALOG_VOLTAGE);
-    analogs[10].configure(172, cfg, ANALOG_VOLTAGE);
+    analogs[0].configure(2, &cfg, ANALOG_RESISTANCE);
+    analogs[1].configure(20, &cfg, ANALOG_RESISTANCE);
+    analogs[2].configure(38, &cfg, ANALOG_RESISTANCE);
+    analogs[3].configure(56, &cfg, ANALOG_RESISTANCE);
+    analogs[4].configure(74, &cfg, ANALOG_RESISTANCE);
+    analogs[5].configure(92, &cfg, ANALOG_VOLTAGE);
+    analogs[6].configure(108, &cfg, ANALOG_VOLTAGE);
+    analogs[7].configure(124, &cfg, ANALOG_VOLTAGE);
+    analogs[8].configure(140, &cfg, ANALOG_VOLTAGE);
+    analogs[9].configure(156, &cfg, ANALOG_VOLTAGE);
+    analogs[10].configure(172, &cfg, ANALOG_VOLTAGE);
 }
 
 void setup() {
@@ -165,7 +165,7 @@ void setup() {
     cfg.setFlash(flash);
     flash->read(0x0000, (uint8_t *)&x, 2);
 
-
+/*
     // Writing a test configuration to the flash
     key = 2;
     dummy = 546;  cfg.writeConfig(key++, (uint8_t *)&dummy); // ID
@@ -227,7 +227,7 @@ void setup() {
     dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // Low Alarm
     dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // High Warn
     dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // High Alarm
-
+*/
 
     // Resistor Analogs
     analogs[0].input_pin = A10;
