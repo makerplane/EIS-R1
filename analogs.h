@@ -25,6 +25,13 @@
 #define ANALOG_RESISTANCE 1
 #define ANALOG_VOLTAGE 2
 
+#define FUNC_LINEAR 0
+#define FUNC_5_STEP 1
+#define FUNC_POLY   2
+#define FUNC_EXP    3
+#define FUNC_STEIN  4
+#define FUNC_BETA   5
+
 
 #include <stdint.h>
 #include "config.h"
@@ -32,16 +39,17 @@
 
 class Analog {
     public:
-        byte flags, type;
+        byte flags, type, functype;
         int input_pin;
         uint16_t pid, index, value, rawValue;
-        uint16_t minimum, maximum, lowWarn, highWarn, lowAlarm, highAlarm;
+        float minimum, maximum, lowWarn, highWarn, lowAlarm, highAlarm;
         void configure(uint16_t keystart, Config *cfg, byte type);
         //void setPin(uint8_t pin);
         void read(void);
 
     private:
-        uint16_t raw[5], scaled[5];
+        uint16_t raw[5];
+        float scaled[5];
 
 };
 

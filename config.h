@@ -36,10 +36,10 @@ class Config {
     public:
         void setFlash(FRAM_SPI *f);
         uint8_t readConfig(uint16_t key, uint8_t *data);
-        void writeConfig(uint16_t key, uint8_t *data);
+        void writeConfig(uint16_t key, void *data);
     private:
         FRAM_SPI *flash;
-        uint8_t len;
+        size_t len;
         uint16_t addr;
         void getAddr(uint16_t key);
 

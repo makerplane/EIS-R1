@@ -33,6 +33,7 @@
 #define FLASH_HOLD 46
 #define FLASH_WP 44
 
+
 /* Status Errors */
 #define STAT_ERR_CONFIG 0x01
 
@@ -90,22 +91,23 @@ byte query_callback(word key, byte *data, byte *len) {
    The proper place in all the objects */
 void configure(void) {
     analogs[0].configure(2, &cfg, ANALOG_RESISTANCE);
-    analogs[1].configure(20, &cfg, ANALOG_RESISTANCE);
-    analogs[2].configure(38, &cfg, ANALOG_RESISTANCE);
-    analogs[3].configure(56, &cfg, ANALOG_RESISTANCE);
-    analogs[4].configure(74, &cfg, ANALOG_RESISTANCE);
-    analogs[5].configure(92, &cfg, ANALOG_VOLTAGE);
-    analogs[6].configure(108, &cfg, ANALOG_VOLTAGE);
-    analogs[7].configure(124, &cfg, ANALOG_VOLTAGE);
-    analogs[8].configure(140, &cfg, ANALOG_VOLTAGE);
-    analogs[9].configure(156, &cfg, ANALOG_VOLTAGE);
-    analogs[10].configure(172, &cfg, ANALOG_VOLTAGE);
+    // analogs[1].configure(20, &cfg, ANALOG_RESISTANCE);
+    // analogs[2].configure(38, &cfg, ANALOG_RESISTANCE);
+    // analogs[3].configure(56, &cfg, ANALOG_RESISTANCE);
+    // analogs[4].configure(74, &cfg, ANALOG_RESISTANCE);
+    // analogs[5].configure(92, &cfg, ANALOG_VOLTAGE);
+    // analogs[6].configure(108, &cfg, ANALOG_VOLTAGE);
+    // analogs[7].configure(124, &cfg, ANALOG_VOLTAGE);
+    // analogs[8].configure(140, &cfg, ANALOG_VOLTAGE);
+    // analogs[9].configure(156, &cfg, ANALOG_VOLTAGE);
+    // analogs[10].configure(172, &cfg, ANALOG_VOLTAGE);
 }
 
 void setup() {
     uint8_t result;
     long now, last = 0;
     uint16_t dummy, key;
+    float dummy_f;
 
     pinMode(LED_BUILTIN, OUTPUT);
 
@@ -165,28 +167,29 @@ void setup() {
     cfg.setFlash(flash);
     flash->read(0x0000, (uint8_t *)&x, 2);
 
-/*
     // Writing a test configuration to the flash
     key = 2;
-    dummy = 546;  cfg.writeConfig(key++, (uint8_t *)&dummy); // ID
-    dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // index
-    dummy = 10;   cfg.writeConfig(key++, (uint8_t *)&dummy); // Raw 0
-    dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // Value 0
-    dummy = 300;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Raw 1
-    dummy = 1800;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Value 1
-    dummy = 300;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Raw 2
-    dummy = 1800;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Value 2
-    dummy = 300;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Raw 3
-    dummy = 1800;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Value 3
-    dummy = 300;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Raw 4
-    dummy = 1800;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Value 4
-    dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // Min
-    dummy = 1800;  cfg.writeConfig(key++, (uint8_t *)&dummy); // Max
-    dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // Low Warn
-    dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // Low Alarm
-    dummy = 1800;  cfg.writeConfig(key++, (uint8_t *)&dummy); // High Warn
-    dummy = 1800;  cfg.writeConfig(key++, (uint8_t *)&dummy); // High Alarm
+    dummy = 546;   cfg.writeConfig(key++, &dummy); // ID
+    dummy = 0;     cfg.writeConfig(key++, &dummy); // index
+    dummy = FUNC_LINEAR;   cfg.writeConfig(key++, &dummy); // function
+    dummy = 10;    cfg.writeConfig(key++, &dummy); // Raw 0
+    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 1
+    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 2
+    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 3
+    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 4
+    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Value A
+    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value B
+    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value C
+    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value D
+    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value E
+    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Min
+    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Max
+    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Low Warn
+    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Low Alarm
+    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // High Warn
+    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // High Alarm
 
+/*
     key = 20;
     dummy = 548;  cfg.writeConfig(key++, (uint8_t *)&dummy); // ID
     dummy = 0;    cfg.writeConfig(key++, (uint8_t *)&dummy); // index
@@ -243,7 +246,6 @@ void setup() {
     analogs[9].input_pin = A8;
     analogs[10].input_pin = A9;
     configure();
-    Serial.println("Start Loop");
 }
 
 
@@ -277,7 +279,7 @@ void loop() {
         //*(uint16_t *)p.data = analogs[0].value;
         p.setFlags( analogs[0].flags );
         cf->sendParam(p);
-        Serial.println(analogs[0].rawValue);
+        //Serial.println(analogs[0].rawValue);
 
         analogs[1].read();
         p.type = analogs[1].pid;

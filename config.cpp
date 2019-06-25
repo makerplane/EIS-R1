@@ -28,28 +28,35 @@
 
 /*  This represents a map of where we find each configuration value.  The
  *  index to the array is the canfix configuration key.  The value itself
- *  encodes the memory address into the higher 4 bits and the length into
+ *  encodes the memory address offset into the higher 4 bits and the length into
  *  the lower 2 bits.
  */
 
-/*
-const PROGMEM uint16_t configMap[] = { (128 << 2) + 1, // Engine Number
-                                       (129 << 2) + 1, // Cylinder Count
-                                       (130 << 2) + 2, // Res Input 1 CF ID
-                                       (132 << 2) + 2, // Res Input 1 CF Index
-                                       (134 << 2) + 2, // Res Input 1 Raw 1
-                                       (136 << 2) + 2, // Res Input 1 Val 1
-                                       (138 << 2) + 2, // Res Input 1 Raw 2
-                                       (140 << 2) + 2, // Res Input 1 Val 2
-                                       (142 << 2) + 2, // Res Input 1 Raw 3
-                                       (144 << 2) + 2, // Res Input 1 Val 3
-                                       (146 << 2) + 2, // Res Input 1 Raw 4
-                                       (148 << 2) + 2, // Res Input 1 Val 4
-                                       (150 << 2) + 2, // Res Input 1 Raw 5
-                                       (152 << 2) + 2, // Res Input 1 Val 5
 
+//const PROGMEM uint16_t configMap[] = { (0 << 2) + 1, // Engine Number
+const uint16_t configMap[] =         { (0 << 3) + 1, // Engine Number
+                                       (1 << 3) + 1, // Cylinder Count
+                                       (2 << 3) + 2, // ID
+                                       (4 << 3) + 2, // Index
+                                       (6 << 3) + 1, // Function
+                                       (8 << 3) + 2, // Raw 1
+                                       (10 << 3) + 2, // Raw 2
+                                       (12 << 3) + 2, // Raw 3
+                                       (14 << 3) + 2, // Raw 4
+                                       (16 << 3) + 2, // Raw 5
+                                       (18 << 3) + 4, // A
+                                       (22 << 3) + 4, // B
+                                       (26 << 3) + 4, // C
+                                       (30 << 3) + 4, // D
+                                       (34 << 3) + 4, // E
+                                       (38 << 3) + 4, // Min
+                                       (42 << 3) + 4, // Max
+                                       (46 << 3) + 4, // Low Warn
+                                       (50 << 3) + 4, // Low Alarm
+                                       (54 << 3) + 4, // High Warn
+                                       (58 << 3) + 4, // High Alarm
                                      };
-
+/*
 void Config::setWriteFunction(void (*func)(uint16_t addr, uint8_t *values, size_t count)) {
     writefunc = func;
 }
@@ -67,13 +74,18 @@ void Config::setFlash(FRAM_SPI *f) {
 }
 
 void Config::getAddr(uint16_t key) {
-    if(key < 2) {
-        addr = CFG_START_ADDR + key;
-        len = 1;
-    } else {
-        addr = (key-2) * 2 + CFG_START_ADDR + 2;
-        len = 2;
-    }
+    addr = CFG_START_ADDR + (configMap[key] >> 3);
+    len  = configMap[key] & 0x0007;
+
+    // if(key < 2) {
+    //     addr = CFG_START_ADDR + key;
+    //     len = 1;
+    // } else {
+    //     index = (key - 2) / 21;
+    //     offset = (key - 2) % 21;
+    //     addr = (key-2) * 2 + CFG_START_ADDR + 2;
+    //     len = 2;
+    // }
 
 }
 
@@ -85,8 +97,13 @@ uint8_t Config::readConfig(uint16_t key, uint8_t *data) {
     return len;
 }
 
-void Config::writeConfig(uint16_t key, uint8_t *data) {
+void Config::writeConfig(uint16_t key, void *data) {
     getAddr(key);
+    // Serial.print(key);
+    // Serial.print(" ");
+    // Serial.print(addr);
+    // Serial.print(" ");
+    // Serial.println(len);
 
     flash->writeEnable(0x01);
     flash->write(addr, data, len);

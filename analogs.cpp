@@ -33,6 +33,8 @@ void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
     type = t;
     cfg->readConfig(key++, (uint8_t *)&pid);
     cfg->readConfig(key++, (uint8_t *)&index);
+    cfg->readConfig(key++, (uint8_t *)&functype);
+
     for(n=0;n<5;n++) {
         cfg->readConfig(key++, (uint8_t *)&result);
         if(type == ANALOG_RESISTANCE) {
@@ -40,6 +42,8 @@ void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
         } else {
             raw[n] = 1023l*result / 5000l;
         }
+    }
+    for(n=0;n<5;n++) {
         cfg->readConfig(key++, (uint8_t *)(scaled +n));
     }
     cfg->readConfig(key++, (uint8_t *)&minimum);
@@ -52,25 +56,31 @@ void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
 
 void Analog::read(void) {
     uint16_t ai;
-    byte n, x = 5;
+    byte n;
+    float x;
     ai = analogRead(input_pin);
     if(type == ANALOG_RESISTANCE) {
       rawValue = 300ul*ai/(1024ul-ai);
     } else {
       rawValue = (5000ul*ai) / 1023;
     }
-    for(n=0;n<4;n++) {
-        if(ai >= raw[n] && ai <= raw[n+1]) {
-          x = n;
-          break;
-        }
+    if(functype == FUNC_LINEAR) {
+       x = scaled[0] + (ai - raw[0])*(scaled[1] - scaled[0])/(raw[1] - raw[0]);
+       value = x * 10;
     }
-    if(x==5) {  //This indicates out of range of the configuration
-        flags = FCB_FAIL;
-        value = 0x00;
-        return;
-    }
-    value = scaled[x] + ((long long)ai - raw[x])*(scaled[x+1] - scaled[x])/(raw[x+1] - raw[x]);
+    // for(n=0;n<4;n++) {
+    //     if(ai >= raw[n] && ai <= raw[n+1]) {
+    //       x = n;
+    //       break;
+    //     }
+    // }
+    // if(x==5) {  //This indicates out of range of the configuration
+    //     flags = FCB_FAIL;
+    //     value = 0x00;
+    //     return;
+    // }
+    // value = scaled[x] + ((long long)ai - raw[x])*(scaled[x+1] - scaled[x])/(raw[x+1] - raw[x]);
+
     //value = 0 + ( (ai - 0)*(3000l - 0))/(1023l - 0);
     //value = (10000ul * ai) / 1023;
 }
