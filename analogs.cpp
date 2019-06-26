@@ -31,8 +31,9 @@ void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
     unsigned int key = keystart;
     uint16_t result;
     type = t;
-    cfg->readConfig(key++, (uint8_t *)&pid);
-    cfg->readConfig(key++, (uint8_t *)&index);
+    cfg->readConfig(key++, (uint8_t *)&result);
+    pid = result >> 4;
+    index = result & 0x000F;
     cfg->readConfig(key++, (uint8_t *)&functype);
 
     for(n=0;n<5;n++) {
@@ -56,7 +57,6 @@ void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
 
 void Analog::read(void) {
     uint16_t ai;
-    byte n;
     float x;
     ai = analogRead(input_pin);
     if(type == ANALOG_RESISTANCE) {
