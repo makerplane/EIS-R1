@@ -407,7 +407,6 @@ void Config::getAddr(uint16_t key) {
         return;
     }
     result = pgm_read_word_far(configMap + key);
-    Serial.println(result);
     addr = result >> 3;
     len = result & 0x0007;
 }

@@ -25,12 +25,6 @@
 #include <avr/pgmspace.h>
 #include "FRAM.h"
 
-// union Config_t {
-//     uint8_t uShort;
-//     uint16_t uInt;
-//     int16_t sInt;
-// };
-
 
 class Config {
     public:

@@ -37,20 +37,31 @@
 #include "config.h"
 #include "canfix.h"
 
+#define AFL_ENG_INC 0x01
+
+struct ParamDefinition {
+    unsigned int pid;
+    unsigned char mult;
+    unsigned char flags;
+    float min;
+    float max;
+};
+
+
 class Analog {
     public:
-        byte flags, type, functype;
+        byte quality, type, functype;
         int input_pin;
         uint16_t pid, index, value, rawValue;
-        float minimum, maximum, lowWarn, highWarn, lowAlarm, highAlarm;
+        float multiplier, min, max;
+        // Aux Data
+        float auxmin, auxmax, lowWarn, highWarn, lowAlarm, highAlarm;
         void configure(uint16_t keystart, Config *cfg, byte type);
-        //void setPin(uint8_t pin);
         void read(void);
 
     private:
-        uint16_t raw[5];
-        float scaled[5];
-
+        float scaled[5], raw[5];
+        struct ParamDefinition *findParamDef(uint16_t pid);
 };
 
 #endif

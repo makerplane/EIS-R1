@@ -21,34 +21,74 @@
 
 #include "analogs.h"
 
+struct ParamDefinition paramDefinition[] =
+                       {{0x21C,100,AFL_ENG_INC,0,100}, // Fuel Pressure
+                        {0x21E,100,AFL_ENG_INC,0,60}, // Manifold Pressure
+                        {0x220,100,AFL_ENG_INC,0,100}, // Oil Pressure
+                        {0x222,10,AFL_ENG_INC,0,300}, // Oil Temperature
+                        {0x224,10,AFL_ENG_INC,0,300}, // Coolant Temperature
+                        {0x226,100,0,0,300}, // Fuel Quantity
+                        {0x50C,10,AFL_ENG_INC,0,300}, // Carburetor Temperature
+                        {0x583,10,0,0,300}, // Cabin Temperature
+                        {0x406,100,0,-300,300}, // Outside Air Temperature
+                        {0x50E,10,0,0,36}, // Electrical Bus Voltage
+                        {0x512,10,0,-200,200}, // Electrical Bus Current
+                        {0x516,10,AFL_ENG_INC,0,36}, // Alternator Voltage
+                        {0x51A,10,AFL_ENG_INC,0,200}, // Alternator Current
+                        {0x390,100,0,0,100}, // Generic Analog
+                        {0x391,100,0,0,100}, // Generic Analog
+                        {0x392,100,0,0,100}, // Generic Analog
+                        {0x393,100,0,0,100}, // Generic Analog
+                        {0,0,0,0,0}            // The End
+};
 
-//void Analog::setPin(uint8_t pin) {
-//    input_pin = pin;
-//}
+
+struct ParamDefinition *Analog::findParamDef(uint16_t pid) {
+    byte n;
+    for(n=0;n<255;n++) {
+        if(paramDefinition[n].pid == pid) {
+            return &paramDefinition[n];
+        } else if(paramDefinition[n].pid == 0) {
+            return 0x00;
+        }
+    }
+    return 0x00;
+}
 
 void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
     byte n;
     unsigned int key = keystart;
     uint16_t result;
     type = t;
+    struct ParamDefinition *pd;
+
     cfg->readConfig(key++, (uint8_t *)&result);
     pid = result >> 4;
     index = result & 0x000F;
+    pd = findParamDef(pid);
+    if(pd) {
+        // TODO deal with engine increment and low bypass flags
+        multiplier = pd->mult;
+        min = pd->min;
+        max = pd->max;
+    } else {
+        pid = 0; // This will indicate a bad pid
+    }
     cfg->readConfig(key++, (uint8_t *)&functype);
 
     for(n=0;n<5;n++) {
         cfg->readConfig(key++, (uint8_t *)&result);
         if(type == ANALOG_RESISTANCE) {
-            raw[n] = 1024l*result/(300l+result);
+            raw[n] = result;
         } else {
-            raw[n] = 1023l*result / 5000l;
+            raw[n] = result / 1000;
         }
     }
     for(n=0;n<5;n++) {
-        cfg->readConfig(key++, (uint8_t *)(scaled +n));
+        cfg->readConfig(key++, (uint8_t *)(scaled + n));
     }
-    cfg->readConfig(key++, (uint8_t *)&minimum);
-    cfg->readConfig(key++, (uint8_t *)&maximum);
+    cfg->readConfig(key++, (uint8_t *)&auxmin);
+    cfg->readConfig(key++, (uint8_t *)&auxmax);
     cfg->readConfig(key++, (uint8_t *)&lowWarn);
     cfg->readConfig(key++, (uint8_t *)&lowAlarm);
     cfg->readConfig(key++, (uint8_t *)&highWarn);
@@ -57,17 +97,37 @@ void Analog::configure(uint16_t keystart, Config *cfg, byte t) {
 
 void Analog::read(void) {
     uint16_t ai;
-    float x;
+    float x=0, y;
     ai = analogRead(input_pin);
     if(type == ANALOG_RESISTANCE) {
-      rawValue = 300ul*ai/(1024ul-ai);
+        rawValue = 300ul*ai/(1024ul-ai); // For use in Status messages.
+        x = rawValue;
     } else {
-      rawValue = (5000ul*ai) / 1023;
+        rawValue = (5000ul*ai) / 1023;
+        x = rawValue / 1000.0;
     }
     if(functype == FUNC_LINEAR) {
-       x = scaled[0] + (ai - raw[0])*(scaled[1] - scaled[0])/(raw[1] - raw[0]);
-       value = x * 10;
+        y = scaled[0] + (x - raw[0])*(scaled[1] - scaled[0])/(raw[1] - raw[0]);
+    } else {
+        y = 0;
     }
+    // TODO Deal with the rest of the functions
+    // Serial.print(scaled[0]);
+    // Serial.print(" ");
+    // Serial.print(scaled[1]);
+    // Serial.print(" ");
+    // Serial.print(raw[0]);
+    // Serial.print(" ");
+    // Serial.print(raw[1]);
+    // Serial.print(" ");
+    // Serial.print(y);
+    // Serial.println(" ");
+
+    if(y > max) y = max;
+    if(y < min) y = min;
+    value = y * multiplier;
+    // TODO Deal with negative numbers
+
     // for(n=0;n<4;n++) {
     //     if(ai >= raw[n] && ai <= raw[n+1]) {
     //       x = n;
