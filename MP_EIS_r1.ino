@@ -33,20 +33,35 @@
 #define FLASH_HOLD 46
 #define FLASH_WP 44
 
+#define STATE_ANALOG 0x01
+#define STATE_TACH   0x02
+#define STATE_END    0x03
 
 /* Status Errors */
 #define STAT_ERR_CONFIG 0x01
 
+/* Job Indication Flags */
+#define JOB_RECONFIG 0x01
+//#define JOB_ 0x02
+//#define JOB_ 0x04
+//#define JOB_ 0x08
+//#define JOB_ 0x10
+//#define JOB_ 0x20
+//#define JOB_ 0x40
+//#define JOB_ 0x80
+
+#define SET_FLAG(p,n) ((p) |= (n))
+#define CLR_FLAG(p,n) ((p) &= (n))
+#define CHK_FLAG(p,n) ((p) && (n))
 
 /* The CanFix class represents our CAN-FIX connection */
 CanFix *cf;
 FRAM_SPI *flash;
 Config cfg;
 Analog analogs[11];
+byte job_flags = 0x00;
 
 uint16_t status = 0x0000;
-CFParameter p;
-int x;
 volatile long counter1 = 0;
 volatile long counter2 = 0;
 volatile long counter3 = 0;
@@ -79,8 +94,11 @@ void report_callback(void) {
 byte config_callback(word key, byte *data) {
     uint8_t x;
     x = cfg.writeConfig(key, data);
-    if(x) return 0x00;
-    return 0x01;
+    if(x) { // Success
+        SET_FLAG(job_flags, JOB_RECONFIG);
+        return 0x00;
+    }
+    return 0x01;  // Probably key not found
 }
 
 byte query_callback(word key, byte *data, byte *len) {
@@ -109,8 +127,6 @@ void configure(void) {
 void setup() {
     uint8_t result;
     long now, last = 0;
-    uint16_t dummy, key;
-    float dummy_f;
 
     pinMode(LED_BUILTIN, OUTPUT);
 
@@ -168,50 +184,6 @@ void setup() {
     Serial.println("Starting...");
 #endif
     cfg.setFlash(flash);
-    flash->read(0x0000, (uint8_t *)&x, 2);
-
-    // Writing a test configuration to the flash
-    key = 10;
-    dummy = 0x2220;   cfg.writeConfig(key++, &dummy); // ID / Index
-    dummy = FUNC_LINEAR;   cfg.writeConfig(key++, &dummy); // function
-    dummy = 10;    cfg.writeConfig(key++, &dummy); // Raw 0
-    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 1
-    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 2
-    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 3
-    dummy = 300;   cfg.writeConfig(key++, &dummy); // Raw 4
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Value A
-    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value B
-    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value C
-    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value D
-    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Value E
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Min
-    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // Max
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Low Warn
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Low Alarm
-    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // High Warn
-    dummy_f = 180.0;  cfg.writeConfig(key++, &dummy_f); // High Alarm
-
-    // Writing a test configuration to the flash
-    key = 120;
-    dummy = 0x21E0;  cfg.writeConfig(key++, (uint8_t *)&dummy); // ID
-    dummy = FUNC_LINEAR;   cfg.writeConfig(key++, &dummy); // function
-    dummy = 0;    cfg.writeConfig(key++, &dummy); // Raw 0
-    dummy = 5000;   cfg.writeConfig(key++, &dummy); // Raw 1
-    dummy = 5000;   cfg.writeConfig(key++, &dummy); // Raw 2
-    dummy = 5000;   cfg.writeConfig(key++, &dummy); // Raw 3
-    dummy = 5000;   cfg.writeConfig(key++, &dummy); // Raw 4
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Value A
-    dummy_f = 30.0;   cfg.writeConfig(key++, &dummy_f); // Value B
-    dummy_f = 30.0;   cfg.writeConfig(key++, &dummy_f); // Value C
-    dummy_f = 30.0;   cfg.writeConfig(key++, &dummy_f); // Value D
-    dummy_f = 30.0;   cfg.writeConfig(key++, &dummy_f); // Value E
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Min
-    dummy_f = 30.0;   cfg.writeConfig(key++, &dummy_f); // Max
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Low Warn
-    dummy_f = 0;      cfg.writeConfig(key++, &dummy_f); // Low Alarm
-    dummy_f = 30.0;   cfg.writeConfig(key++, &dummy_f); // High Warn
-    dummy_f = 30.0;   cfg.writeConfig(key++, &dummy_f); // High Alarm
-
 
     // Resistor Analogs
     analogs[0].input_pin = A10;
@@ -232,55 +204,69 @@ void setup() {
 
 void loop() {
     byte n;
-    static long update_rate = 500;
-    static long next = update_rate;
-
-    //long now, val;
+    static byte cycle = 0;
+    static int state = STATE_ANALOG;
+    static long next_250 = 250;
+    static int index = 0, rpm = 2400;
     long now;
-    now = millis();
-    if(now > next) {
-        next += 500;
-        p.type = 0x200;
-        p.index = 0;
-        p.fcb = 0x00;
-        p.data[0] = x;
-        p.data[1] = x>>8;
-        p.length = 2;
-        x++;
-        flash->writeEnable(0x01);
-        flash->write(0x0000, (uint8_t *)&x, 2);
-        flash->writeEnable(0x00);
-        if(x > 2600) x = 2400;
-        cf->sendParam(p);
+    static CFParameter p;
+//    unsigned long start, end;
 
-        for(n=0;n<11;n++) {
-            analogs[n].read();
-            if(analogs[n].pid) { // pid is non zero if good
-                p.type = analogs[n].pid;
-                p.data[0] = analogs[n].value;
-                p.data[1] = analogs[n].value >> 8;
-                p.setFlags( analogs[n].quality );
-                cf->sendParam(p);
+    now = millis();
+
+    if(state == STATE_ANALOG) {
+        analogs[index++].read();
+        if(index == 11) {
+            index = 0;
+            state++;
+        }
+    } else if(state == STATE_TACH) {
+        state++; // Calculate TACH
+    } else if(state == STATE_END) {
+        ;
+    }
+
+    if(now > next_250) {
+        next_250 += 250;
+        if(cycle % 4 == 0) {
+            p.type = 0x200;
+            p.index = 0;
+            p.fcb = 0x00;
+            p.data[0] = rpm;
+            p.data[1] = rpm>>8;
+            p.length = 2;
+            rpm++;
+            if(rpm >= 2600) rpm = 2400;
+            cf->sendParam(p);
+        }
+        if(cycle % 2 == 0) {
+            for(n=0;n<11;n++) {
+                if(analogs[n].pid) { // pid is non zero if good
+                    p.type = analogs[n].pid;
+                    p.index = analogs[n].index;
+                    p.setMetaData(0x00);
+                    p.data[0] = analogs[n].value;
+                    p.data[1] = analogs[n].value >> 8;
+                    p.length = 2;
+                    p.setFlags( analogs[n].quality );
+                    cf->sendParam(p);
+                }
             }
         }
-
-        // analogs[0].read();
-        // p.type = analogs[0].pid;
-        // p.data[0] = analogs[0].value;
-        // p.data[1] = analogs[0].value >> 8;
-        // //*(uint16_t *)p.data = analogs[1].value;
-        // p.setFlags( analogs[0].quality );
-        // cf->sendParam(p);
-
-        // analogs[5].read();
-        // p.type = analogs[5].pid;
-        // p.data[0] = analogs[5].value;
-        // p.data[1] = analogs[5].value >> 8;
-        // //*(uint16_t *)p.data = analogs[5].value;
-        // p.setFlags( analogs[5].quality );
-        // cf->sendParam(p);
-        // //Serial.println(analogs[5].rawValue);
-
+        // Every second offset by 1 cycle
+        if(cycle % 8 == 1) {
+            cf->sendStatus(0x0000, (byte *)&status, 2);
+        }
+        // Every Two seconds
+        if(cycle % 16 == 0) {
+            if(CHK_FLAG(job_flags, JOB_RECONFIG)) {
+                // This takes about 8mSec so incoming messages can be lost
+                configure();
+                CLR_FLAG(job_flags, JOB_RECONFIG);
+            }
+        }
+        cycle++;
     }
     cf->exec();
+    if(state == STATE_END) state = 0x01;
 }
