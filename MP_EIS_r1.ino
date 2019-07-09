@@ -97,6 +97,7 @@ void isr4(void) {
 
 
 /* CAN-FIX Callback routines */
+
 void report_callback(void) {
     ;
 }
@@ -116,7 +117,6 @@ byte query_callback(word key, byte *data, byte *len) {
     if(len) return 0x00;
     return 0x01;
 }
-
 
 
 /* This function reads the configuration and writes the data to

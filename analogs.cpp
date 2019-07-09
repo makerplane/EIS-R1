@@ -22,24 +22,24 @@
 #include "analogs.h"
 
 struct ParamDefinition paramDefinition[] =
-                       {{0x21C,100,AFL_ENG_INC,0,100}, // Fuel Pressure
-                        {0x21E,100,AFL_ENG_INC,0,60}, // Manifold Pressure
-                        {0x220,100,AFL_ENG_INC,0,100}, // Oil Pressure
-                        {0x222,10,AFL_ENG_INC,0,300}, // Oil Temperature
-                        {0x224,10,AFL_ENG_INC,0,300}, // Coolant Temperature
-                        {0x226,100,0,0,300}, // Fuel Quantity
-                        {0x50C,10,AFL_ENG_INC,0,300}, // Carburetor Temperature
-                        {0x583,10,0,0,300}, // Cabin Temperature
-                        {0x406,100,0,-300,300}, // Outside Air Temperature
-                        {0x50E,10,0,0,36}, // Electrical Bus Voltage
-                        {0x512,10,0,-200,200}, // Electrical Bus Current
-                        {0x516,10,AFL_ENG_INC,0,36}, // Alternator Voltage
-                        {0x51A,10,AFL_ENG_INC,0,200}, // Alternator Current
-                        {0x390,100,0,0,100}, // Generic Analog
-                        {0x391,100,0,0,100}, // Generic Analog
-                        {0x392,100,0,0,100}, // Generic Analog
-                        {0x393,100,0,0,100}, // Generic Analog
-                        {0,0,0,0,0}            // The End
+         {{0x21C,100,AFL_ENG_INC | AFL_LOW_BYP,0,100}, // Fuel Pressure
+          {0x21E,100,AFL_ENG_INC,0,60}, // Manifold Pressure
+          {0x220,100,AFL_ENG_INC | AFL_LOW_BYP,0,100}, // Oil Pressure
+          {0x222,10,AFL_ENG_INC | AFL_LOW_BYP,0,300}, // Oil Temperature
+          {0x224,10,AFL_ENG_INC | AFL_LOW_BYP,0,300}, // Coolant Temperature
+          {0x226,100,0,0,300}, // Fuel Quantity
+          {0x50C,10,AFL_ENG_INC | AFL_LOW_BYP,0,300}, // Carburetor Temperature
+          {0x583,10,0,0,300}, // Cabin Temperature
+          {0x406,100,0,-300,300}, // Outside Air Temperature
+          {0x50E,10,0,0,36}, // Electrical Bus Voltage
+          {0x512,10,0,-200,200}, // Electrical Bus Current
+          {0x516,10,AFL_ENG_INC,0,36}, // Alternator Voltage
+          {0x51A,10,AFL_ENG_INC,0,200}, // Alternator Current
+          {0x390,100,0,0,100}, // Generic Analog
+          {0x391,100,0,0,100}, // Generic Analog
+          {0x392,100,0,0,100}, // Generic Analog
+          {0x393,100,0,0,100}, // Generic Analog
+          {0,0,0,0,0}            // The End
 };
 
 

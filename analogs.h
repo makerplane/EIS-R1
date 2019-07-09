@@ -37,14 +37,18 @@
 #include "config.h"
 #include "canfix.h"
 
-#define AFL_ENG_INC 0x01
+// Configuration flags
+#define AFL_ENG_INC 0x01 // should incrment by one when the engine number is 2
+#define AFL_LOW_BYP 0x02 // bypass low warnings/alarms at engine start
 
+// Stores information on how the Analog class should deal with the different
+// Parameters that we might send.
 struct ParamDefinition {
-    unsigned int pid;
-    unsigned char mult;
-    unsigned char flags;
-    float min;
-    float max;
+    unsigned int pid;    // CAN-FIX Parameter ID
+    unsigned char mult;  // Multiplier
+    unsigned char flags; // Configuration Flags
+    float min;           // Minimum allowed value
+    float max;           // Maximum allowed value
 };
 
 

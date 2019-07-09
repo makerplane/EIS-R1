@@ -408,10 +408,6 @@ const uint16_t configMap[] PROGMEM = {
     (1205 << 3) + 2,  // EGT 6 Calibration Offset
 };
 
-
-//#define CFG_START_ADDR 128
-
-
 void Config::setFlash(FRAM_SPI *f) {
     flash = f;
 }

@@ -12,7 +12,7 @@ Calculate fuel totalizer
 
 System watchdog timer
 
-Add parameter set to be able to externally set the fuel total
+Add parameter set to be able to externally set the fuel total and engine time
 
 Store engine / flight timers
 
@@ -22,8 +22,16 @@ Send the status information from the raw values.  Might have another
 configuration key to set a mode where this isn't always done to save
 bandwidth on the CAN Bus
 
-Calculate annunciations if values are above or below the warning and alarm
-set points
+Calculate annunciations when values are above or below the warning and alarm
+thresholds
+
+Complete the rest of the Analog compute function implementations...
+  - 5-Point Interpolated
+  - Polynomial
+  - Exponential
+  - Steinhart-Hart
+  - Beta
+
 
 
 **************
@@ -44,6 +52,13 @@ Calculate and send CHT/EGT deviations and deviation alarms
 
 Send Values over the serial port in GRT EIS type format.  If there is room
 for the code we might have a couple of different format selections.
+
+Warning and Audio outputs
+
+Add serial number to end of flash
+
+Implement the CAN-FIX bootloader
+
 
 **************
 Clean up
