@@ -1,0 +1,54 @@
+**************
+High Priority
+**************
+
+Read and send EGT and CHT Thermocouples
+
+Send Aux Data for all types
+
+Calculate and send fuel flows.  Very similar to tach readings.
+
+Calculate fuel totalizer
+
+System watchdog timer
+
+Add parameter set to be able to externally set the fuel total
+
+Store engine / flight timers
+
+Read and send device temperature status
+
+Send the status information from the raw values.  Might have another
+configuration key to set a mode where this isn't always done to save
+bandwidth on the CAN Bus
+
+Calculate annunciations if values are above or below the warning and alarm
+set points
+
+
+**************
+Low Priority
+**************
+
+Deal with the report generation - Need to get all data sending functions moved
+to their own functions to finish this.  Including the Aux data.
+
+Read CAN RX overflows from chip and send as status
+
+Read CAN Errors from CAN Chip and send as status.  May need to also clear
+errors on the chip.
+
+Actually use the enable/disable parameter feature
+
+Calculate and send CHT/EGT deviations and deviation alarms
+
+Send Values over the serial port in GRT EIS type format.  If there is room
+for the code we might have a couple of different format selections.
+
+**************
+Clean up
+**************
+
+Move configuration to EEPROM
+
+Remove Serial debugging

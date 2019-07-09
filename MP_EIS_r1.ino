@@ -62,27 +62,37 @@ Analog analogs[11];
 byte job_flags = 0x00;
 
 uint16_t status = 0x0000;
-volatile long counter1 = 0;
-volatile long counter2 = 0;
-volatile long counter3 = 0;
-volatile long counter4 = 0;
+volatile long last_tach_time1 = 0;
+volatile long duration1 = 0;
+volatile long last_tach_time2 = 0;
+volatile long duration2 = 0;
+volatile long duration3 = 0;
+volatile long duration4 = 0;
+volatile long fuel_counter1 = 0;
+volatile long fuel_counter2 = 0;
 
 
 /* Interrupt Service Routines */
 void isr1(void) {
-  counter1++;
+    long x;
+    x = micros();
+    duration1 = x - last_tach_time1;
+    last_tach_time1 = x;
 }
 
 void isr2(void) {
-  counter2++;
+    long x;
+    x = micros();
+    duration2 = x - last_tach_time2;
+    last_tach_time2 = x;
 }
 
 void isr3(void) {
-  counter3++;
+    fuel_counter1++;
 }
 
 void isr4(void) {
-  counter4++;
+    fuel_counter2++;
 }
 
 
@@ -108,6 +118,7 @@ byte query_callback(word key, byte *data, byte *len) {
 }
 
 
+
 /* This function reads the configuration and writes the data to
    The proper place in all the objects */
 void configure(void) {
@@ -122,6 +133,83 @@ void configure(void) {
     analogs[8].configure(186, &cfg, ANALOG_VOLTAGE);
     analogs[9].configure(208, &cfg, ANALOG_VOLTAGE);
     analogs[10].configure(230, &cfg, ANALOG_VOLTAGE);
+}
+
+/* This function checks the duration from the ISRs for the Tachometer inputs,
+   calculates the RPMs and decides what to do with them */
+void send_tachometers(void) {
+    int k, rpm1, rpm2, rpm;
+    unsigned int sel1, sel2;
+    long x;
+    CFParameter p;
+    // Calculate the first tach reading
+    if(duration1 != 0) {
+        x = micros();
+        // If it's been longer than a second then we're not turning
+        if(x - last_tach_time1 > 5e5) {
+            last_tach_time1 = x;
+            duration1 = 0;
+            rpm1 = 0;
+        } else {
+            // Read the pulses / revolution from the configuration
+            cfg.readConfig(253, (uint8_t *)&k);
+            noInterrupts();
+            rpm1 = (int)((60e6 / duration1 / k) / 10) * 10;
+            interrupts();
+        }
+    } else {
+        rpm1 = 0;
+    }
+    // Calculate the second tach reading
+    if(duration2 != 0) {
+        x = micros();
+        // If it's been longer than a second then we're not turning
+        if(x - last_tach_time2 > 5e5) {
+            last_tach_time2 = x;
+            duration2 = 0;
+            rpm2 = 0;
+        } else {
+            // Read the pulses / revolution from the configuration
+            cfg.readConfig(269, (uint8_t *)&k);
+            noInterrupts();
+            rpm2 = (int)((60e6 / duration2 / k) / 10) * 10;
+            interrupts();
+        }
+    } else {
+        rpm2 = 0;
+    }
+    cfg.readConfig(252, (uint8_t *)&sel1);
+    cfg.readConfig(268, (uint8_t *)&sel2);
+
+    // These don't change
+    p.index = 0;
+    p.length = 2;
+
+    // This would indicate redundant inputs for the same parameter
+    if(sel1 == sel2) {
+        p.type = sel1 >> 4;  // Retrieve the CAN-ID from the selection
+        rpm = rpm1 > rpm2 ? rpm1 : rpm2; // High select
+        p.data[0] = rpm;
+        p.data[1] = rpm>>8;
+        if(abs(rpm1 - rpm2) > 50) { // Deviation gives us quality of the data
+            p.fcb = FCB_QUALITY;
+        } else {
+            p.fcb = 0x00;
+        }
+        cf->sendParam(p);
+    } else {
+        p.fcb = 0x00;
+        p.type = sel1 >> 4;
+        p.data[0] = rpm1;
+        p.data[1] = rpm1>>8;
+        cf->sendParam(p);
+
+        p.type = sel2 >> 4;
+        p.data[0] = rpm2;
+        p.data[1] = rpm2>>8;
+        cf->sendParam(p);
+    }
+
 }
 
 void setup() {
@@ -207,7 +295,7 @@ void loop() {
     static byte cycle = 0;
     static int state = STATE_ANALOG;
     static long next_250 = 250;
-    static int index = 0, rpm = 2400;
+    static int index = 0;
     long now;
     static CFParameter p;
 //    unsigned long start, end;
@@ -229,15 +317,7 @@ void loop() {
     if(now > next_250) {
         next_250 += 250;
         if(cycle % 4 == 0) {
-            p.type = 0x200;
-            p.index = 0;
-            p.fcb = 0x00;
-            p.data[0] = rpm;
-            p.data[1] = rpm>>8;
-            p.length = 2;
-            rpm++;
-            if(rpm >= 2600) rpm = 2400;
-            cf->sendParam(p);
+            send_tachometers();
         }
         if(cycle % 2 == 0) {
             for(n=0;n<11;n++) {
