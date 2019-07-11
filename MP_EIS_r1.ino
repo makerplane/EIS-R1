@@ -66,9 +66,11 @@ volatile long last_tach_time1 = 0;
 volatile long duration1 = 0;
 volatile long last_tach_time2 = 0;
 volatile long duration2 = 0;
+volatile long last_fuel_time1 = 0;
 volatile long duration3 = 0;
-volatile long duration4 = 0;
 volatile long fuel_counter1 = 0;
+volatile long last_fuel_time2 = 0;
+volatile long duration4 = 0;
 volatile long fuel_counter2 = 0;
 
 
@@ -88,10 +90,18 @@ void isr2(void) {
 }
 
 void isr3(void) {
+    long x;
+    x = micros();
+    duration3 = x - last_fuel_time1;
+    last_fuel_time1 = x;
     fuel_counter1++;
 }
 
 void isr4(void) {
+    long x;
+    x = micros();
+    duration4 = x - last_fuel_time2;
+    last_fuel_time2 = x;
     fuel_counter2++;
 }
 
@@ -212,6 +222,99 @@ void send_tachometers(void) {
 
 }
 
+
+/* This function checks the duration from the ISRs for the Fuel Flow inputs,
+   calculates the Flows and sends them */
+void send_fuel_flow(void) {
+    float flow1, flow2;
+    unsigned int sel1, sel2, k, flow;
+    long x;
+    CFParameter p;
+    // Calculate the first fuel flow reading
+    if(duration3 != 0) {
+        x = micros();
+        // If it's been longer than a second then we're not turning
+        if(x - last_fuel_time1 > 5e5) {
+            last_fuel_time1 = x;
+            duration3 = 0;
+            flow1 = 0;
+        } else {
+            // Read the pulses / revolution from the configuration
+            cfg.readConfig(285, (uint8_t *)&k);
+            noInterrupts();
+            flow1 = (3.6e9 / duration3 / k);
+            interrupts();
+        }
+    } else {
+        flow1 = 0;
+    }
+    // Calculate the second fuel flow reading
+    if(duration4 != 0) {
+        x = micros();
+        // If it's been longer than a second then we're not turning
+        if(x - last_fuel_time2 > 5e5) {
+            last_fuel_time2 = x;
+            duration4 = 0;
+            flow2 = 0;
+        } else {
+            // Read the pulses / revolution from the configuration
+            cfg.readConfig(285, (uint8_t *)&k);
+            noInterrupts();
+            flow2 = (3.6e9 / duration4 / k);
+            interrupts();
+        }
+    } else {
+        flow2 = 0;
+    }
+    cfg.readConfig(284, (uint8_t *)&sel1);
+    cfg.readConfig(296, (uint8_t *)&sel2);
+
+    // These don't change
+    p.index = 0;
+    p.length = 2;
+
+    // This would indicate redundant inputs for the same parameter
+    if(sel1 == sel2) {
+        p.type = sel1 >> 4;  // Retrieve the CAN-ID from the selection
+        flow = (uint16_t)(flow1 > flow2 ? flow1 * 100: flow2 * 100 ); // High select
+        p.data[0] = flow;
+        p.data[1] = flow>>8;
+        cf->sendParam(p);
+    } else if(sel1 == 0x21A0 && sel2 == 0x21A1) {
+        p.fcb = 0x00;
+        p.type = sel1 >> 4;
+        flow = (uint16_t)((flow1 - flow2) * 100);
+        p.data[0] = flow;
+        p.data[1] = flow>>8;
+        cf->sendParam(p);
+    } else if(sel1 == 0x21A1 && sel2 == 0x21A0) {
+        p.fcb = 0x00;
+        p.type = sel1 >> 4;
+        flow = (uint16_t)((flow2 - flow1) * 100);
+        p.data[0] = flow;
+        p.data[1] = flow>>8;
+        cf->sendParam(p);
+    } else {
+        if(sel1 != 0x0000) {
+            p.type = sel1 >> 4;
+            Serial.println(p.type);
+            flow = (uint16_t)(flow1 * 100);
+            p.data[0] = flow;
+            p.data[1] = flow>>8;
+            cf->sendParam(p);
+        }
+        if(sel2 != 0x0000) {
+            p.type = sel2 >> 4;
+            Serial.println(p.type);
+            flow = (uint16_t)(flow2 * 100);
+            p.data[0] = flow;
+            p.data[1] = flow>>8;
+            cf->sendParam(p);
+        }
+    }
+}
+
+
 void setup() {
     uint8_t result;
     long now, last = 0;
@@ -318,6 +421,9 @@ void loop() {
         next_250 += 250;
         if(cycle % 4 == 0) {
             send_tachometers();
+        }
+        if(cycle % 4 == 1) {
+            send_fuel_flow();
         }
         if(cycle % 2 == 0) {
             for(n=0;n<11;n++) {

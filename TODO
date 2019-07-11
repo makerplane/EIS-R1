@@ -6,13 +6,12 @@ Read and send EGT and CHT Thermocouples
 
 Send Aux Data for all types
 
-Calculate and send fuel flows.  Very similar to tach readings.
-
 Calculate fuel totalizer
 
 System watchdog timer
 
-Add parameter set to be able to externally set the fuel total and engine time
+Add parameter set to be able to externally set the fuel total and (maybe)
+engine time
 
 Store engine / flight timers
 
@@ -58,6 +57,8 @@ Warning and Audio outputs
 Add serial number to end of flash
 
 Implement the CAN-FIX bootloader
+
+Add Tach time (as opposed to Hobbs time)
 
 
 **************
