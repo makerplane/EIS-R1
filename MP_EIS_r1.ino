@@ -23,19 +23,25 @@
 #include "FRAM.h"
 #include "config.h"
 #include "analogs.h"
+#include "adc.h"
+
 
 /* Comment this line to remove serial debugging code */
 #define DEBUG_SERIAL 0x01
 
 /* Pin definitions */
-#define CAN_CS 34
-#define FLASH_CS 42
-#define FLASH_HOLD 46
-#define FLASH_WP 44
+#define CAN_CS      34
+#define FLASH_CS    42
+#define FLASH_HOLD  46
+#define FLASH_WP    44
 
-#define STATE_ANALOG 0x01
-#define STATE_TACH   0x02
-#define STATE_END    0x03
+#define WARNING_PIN 36
+#define SS          53
+
+#define STATE_ANALOG   1
+#define STATE_TC_SET   2
+#define STATE_TC_WAIT  3
+#define STATE_END      4
 
 /* Status Errors */
 #define STAT_ERR_CONFIG 0x01
@@ -59,9 +65,15 @@ CanFix *cf;
 FRAM_SPI *flash;
 Config cfg;
 Analog analogs[11];
+ADC1118 adc;
 byte job_flags = 0x00;
 
+/* Config and scratchpad stuff */
 uint16_t status = 0x0000;
+byte engine_number = 0;
+byte cylinder_count = 4;
+
+/* ISR Data */
 volatile long last_tach_time1 = 0;
 volatile long duration1 = 0;
 volatile long last_tach_time2 = 0;
@@ -297,7 +309,6 @@ void send_fuel_flow(void) {
     } else {
         if(sel1 != 0x0000) {
             p.type = sel1 >> 4;
-            Serial.println(p.type);
             flow = (uint16_t)(flow1 * 100);
             p.data[0] = flow;
             p.data[1] = flow>>8;
@@ -305,7 +316,6 @@ void send_fuel_flow(void) {
         }
         if(sel2 != 0x0000) {
             p.type = sel2 >> 4;
-            Serial.println(p.type);
             flow = (uint16_t)(flow2 * 100);
             p.data[0] = flow;
             p.data[1] = flow>>8;
@@ -314,15 +324,43 @@ void send_fuel_flow(void) {
     }
 }
 
+/* Send the Cylinder Head Temperatures */
+void send_chts(void) {
+    int x;
+    CFParameter p;
+    p.length = 2;
+    p.type = 0x500 + engine_number;
+
+    for(x=0;x<cylinder_count;x++) {
+        p.index = x;
+        p.data[0] = adc.chts[x];
+        p.data[1] = adc.chts[x]>>8;
+        cf->sendParam(p);
+    }
+}
+
+/* Send the Exhaust Gas Temperatures */
+void send_egts(void) {
+    int x;
+    CFParameter p;
+    p.length = 2;
+    p.type = 0x502 + engine_number;
+
+    for(x=0; x<cylinder_count; x++) {
+        p.index = x;
+        p.data[0] = adc.egts[x];
+        p.data[1] = adc.egts[x]>>8;
+        cf->sendParam(p);
+    }
+}
+
 
 void setup() {
     uint8_t result;
     long now, last = 0;
 
-    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(SS, OUTPUT);
 
-    SPI.setBitOrder(MSBFIRST);
-    //SPI.setClockDivider(SPI_CLOCK_DIV4);
     SPI.begin();
 #ifdef DEBUG_SERIAL
     Serial.begin(115200);
@@ -348,6 +386,15 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(3), isr2, RISING);
     attachInterrupt(digitalPinToInterrupt(18), isr3, RISING);
     attachInterrupt(digitalPinToInterrupt(19), isr4, RISING);
+
+    /* Set Pin Modes for the Thermocouple MUX chips */
+    pinMode(ADC_CS, OUTPUT);
+    digitalWrite(ADC_CS, HIGH);
+    pinMode(ADC_MUX0, OUTPUT);
+    pinMode(ADC_MUX1, OUTPUT);
+    pinMode(ADC_MUX2, OUTPUT);
+    /* Warning Transitor Output Pin */
+    pinMode(WARNING_PIN, OUTPUT);
 
     /* Instantiate the FRAM object */
     flash = new FRAM_SPI(FLASH_CS, FLASH_HOLD, FLASH_WP);
@@ -392,14 +439,15 @@ void setup() {
     configure();
 }
 
+unsigned long tc_ready;
 
 void loop() {
-    byte n;
+    static byte n;
     static byte cycle = 0;
     static int state = STATE_ANALOG;
-    static long next_250 = 250;
+    static unsigned long next_250 = 250;
     static int index = 0;
-    long now;
+    unsigned long now = 0;
     static CFParameter p;
 //    unsigned long start, end;
 
@@ -409,41 +457,68 @@ void loop() {
         analogs[index++].read();
         if(index == 11) {
             index = 0;
-            state++;
+            //state = STATE_TC_SET;
+            state = STATE_END;
         }
-    } else if(state == STATE_TACH) {
-        state++; // Calculate TACH
+    } else if(state == STATE_TC_SET) {
+        if(index < 6) {
+            adc.start_sample(index, ADC_TYPE_CHT);
+        } else if(index < 12) {
+            adc.start_sample(index-6, ADC_TYPE_EGT);
+        } else if(index == 12) {
+            adc.start_sample(0, ADC_TYPE_VOLT);
+        } else if(index == 13) {
+            adc.start_sample(0, ADC_TYPE_TEMP);
+        }
+
+        tc_ready = now + 10;
+        state = STATE_TC_WAIT; // Calculate TACH
+    } else if(state == STATE_TC_WAIT) {
+        Serial.print(now);
+        Serial.print(" ");
+        Serial.println(tc_ready);
+        if(now > tc_ready) {
+            adc.read_sample();
+            if(index == 13) {
+                index = 0;
+                state = STATE_END; // Go to the end
+            } else {
+                index++;
+                state = STATE_TC_SET;
+            }
+        }
     } else if(state == STATE_END) {
         ;
     }
 
     if(now > next_250) {
         next_250 += 250;
-        if(cycle % 4 == 0) {
-            send_tachometers();
-        }
-        if(cycle % 4 == 1) {
-            send_fuel_flow();
+        // We send the analogs at 4Hz
+        for(n=0;n<11;n++) {
+            if(analogs[n].pid) { // pid is non zero if good
+                p.type = analogs[n].pid;
+                p.index = analogs[n].index;
+                p.setMetaData(0x00);
+                p.data[0] = analogs[n].value;
+                p.data[1] = analogs[n].value >> 8;
+                p.length = 2;
+                p.setFlags( analogs[n].quality );
+                cf->sendParam(p);
+            }
         }
         if(cycle % 2 == 0) {
-            for(n=0;n<11;n++) {
-                if(analogs[n].pid) { // pid is non zero if good
-                    p.type = analogs[n].pid;
-                    p.index = analogs[n].index;
-                    p.setMetaData(0x00);
-                    p.data[0] = analogs[n].value;
-                    p.data[1] = analogs[n].value >> 8;
-                    p.length = 2;
-                    p.setFlags( analogs[n].quality );
-                    cf->sendParam(p);
-                }
-            }
+            send_tachometers();
+            send_chts();
+        }
+        if(cycle % 2 == 1) {
+            send_fuel_flow();
+            send_egts();
         }
         // Every second offset by 1 cycle
         if(cycle % 8 == 1) {
             cf->sendStatus(0x0000, (byte *)&status, 2);
         }
-        // Every Two seconds
+        // Every Four seconds
         if(cycle % 16 == 0) {
             if(CHK_FLAG(job_flags, JOB_RECONFIG)) {
                 // This takes about 8mSec so incoming messages can be lost
@@ -454,5 +529,5 @@ void loop() {
         cycle++;
     }
     cf->exec();
-    if(state == STATE_END) state = 0x01;
+    if(state == STATE_END) state = 1;
 }

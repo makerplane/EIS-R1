@@ -2,7 +2,7 @@
 High Priority
 **************
 
-Read and send EGT and CHT Thermocouples
+Send EGT and CHT Thermocouples
 
 Send Aux Data for all types
 
@@ -31,7 +31,7 @@ Complete the rest of the Analog compute function implementations...
   - Steinhart-Hart
   - Beta
 
-
+Do error checking on thermocouple inputs and fail accordingly
 
 **************
 Low Priority
