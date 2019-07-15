@@ -22,6 +22,7 @@
 void FRAM_SPI::getDeviceID(uint8_t *manufacturerID, uint16_t *productID) {
     uint8_t x[4];
 
+    SPI.beginTransaction(FRAM_SETTINGS);
     digitalWrite(cs_pin, LOW);
     spi->transfer(OPCODE_RDID);
     x[0] = spi->transfer(0);
@@ -29,6 +30,7 @@ void FRAM_SPI::getDeviceID(uint8_t *manufacturerID, uint16_t *productID) {
     x[2] = spi->transfer(0);
     x[3] = spi->transfer(0);
     digitalWrite(cs_pin, HIGH);
+    SPI.endTransaction();
 
     *manufacturerID = (x[0]);
     *productID = (x[2] << 8) + x[3];
@@ -63,6 +65,7 @@ FRAM_SPI::FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI) {
 }
 
 void FRAM_SPI::writeEnable(bool enable) {
+    SPI.beginTransaction(FRAM_SETTINGS);
     digitalWrite(cs_pin, LOW);
     if (enable) {
         spi->transfer(OPCODE_WREN);
@@ -70,9 +73,11 @@ void FRAM_SPI::writeEnable(bool enable) {
         spi->transfer(OPCODE_WRDI);
     }
     digitalWrite(cs_pin, HIGH);
+    SPI.endTransaction();
 }
 
 void FRAM_SPI::write(uint16_t addr, const uint8_t *values, size_t count) {
+    SPI.beginTransaction(FRAM_SETTINGS);
     digitalWrite(cs_pin, LOW);
     spi->transfer(OPCODE_WRITE);
     spi->transfer((uint8_t)(addr >> 8));
@@ -82,9 +87,11 @@ void FRAM_SPI::write(uint16_t addr, const uint8_t *values, size_t count) {
     }
     /* CS on the rising edge commits the WRITE */
     digitalWrite(cs_pin, HIGH);
+    SPI.endTransaction();
 }
 
 void FRAM_SPI::read(uint16_t addr, uint8_t *values, size_t count) {
+    SPI.beginTransaction(FRAM_SETTINGS);
     digitalWrite(cs_pin, LOW);
     spi->transfer(OPCODE_READ);
     spi->transfer((uint8_t)(addr >> 8));
@@ -94,6 +101,7 @@ void FRAM_SPI::read(uint16_t addr, uint8_t *values, size_t count) {
         values[i] = x;
     }
     digitalWrite(cs_pin, HIGH);
+    SPI.endTransaction();
 }
 
 uint8_t FRAM_SPI::getStatus(void) {

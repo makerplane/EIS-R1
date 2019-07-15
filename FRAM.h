@@ -29,6 +29,8 @@
 #define OPCODE_WRITE 0b0010    /* Write Memory */
 #define OPCODE_RDID 0b10011111 /* Read Device ID */
 
+#define FRAM_SETTINGS SPISettings(20000000, MSBFIRST, SPI_MODE0)
+
 class FRAM_SPI {
     public:
         FRAM_SPI(uint8_t cs, uint8_t hold, uint8_t wp, SPIClass *theSPI = &SPI);
